@@ -1,0 +1,27 @@
+# Note: `trl` is intentionally excluded. DPO and KTO are implemented from
+# scratch in `models/dpo.py` and `models/kto.py`.
+# Version floors chosen for Mistral-7B-Instruct-v0.2 + QLoRA compatibility.
+# May need to tighten if Colab's preinstalled versions cause issues.
+
+# Core ML
+torch>=2.1
+transformers>=4.41
+peft>=0.11
+bitsandbytes>=0.43
+accelerate>=0.30
+datasets>=2.19
+
+# APIs and HTTP
+anthropic>=0.34
+requests>=2.31
+
+# Evaluation metrics
+bert_score>=0.3.13
+nltk>=3.8
+scipy>=1.11
+scikit-learn>=1.3
+
+# Logging, plotting, progress
+tensorboard>=2.15
+matplotlib>=3.8
+tqdm>=4.66
