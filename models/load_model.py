@@ -72,7 +72,7 @@ def load_model_and_tokenizer(
         tokenizer.pad_token = tokenizer.eos_token
 
     _print_param_summary(model)
-    _print_vram_usage()
+    print_vram_usage()
 
     return model, tokenizer
 
@@ -93,7 +93,7 @@ def _print_param_summary(model: PeftModel) -> None:
     )
 
 
-def _print_vram_usage() -> None:
+def print_vram_usage() -> None:
     """Print current GPU memory usage. No-op when CUDA is unavailable."""
     if not torch.cuda.is_available():
         print("[load_model] CUDA not available; skipping VRAM report.")

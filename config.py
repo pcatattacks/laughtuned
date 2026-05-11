@@ -48,6 +48,17 @@ CONFIG: Dict[str, Any] = {
     "gen_temperature": 0.9,
     "gen_top_p": 0.95,
     "gen_max_new_tokens": 200,
+    # Forward-pass batch size for the BASE-model generation runs.
+    # `gen_pairs_batch_size` is doubled internally (each prompt appears twice
+    # in the forward pass to produce response_a and response_b from
+    # independent samples), so the actual GPU batch is 2 * this value.
+    # `gen_eval_batch_size` is used as-is for single-response generation
+    # during final eval (no doubling).
+    # Memory tuning rules of thumb on Mistral-7B 4-bit at seq_len=1024:
+    #   T4 16 GB:  pairs=4, eval=8  (current)
+    #   A100 40 GB: pairs=8 or 16, eval=16 or 32
+    "gen_pairs_batch_size": 4,
+    "gen_eval_batch_size": 8,
 
     # APIs (fill in via Colab secrets or local env, do NOT commit values)
     "judge_model": "claude-sonnet-4-6",
