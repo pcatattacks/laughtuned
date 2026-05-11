@@ -105,38 +105,72 @@ def _guardian_get(
 ) -> Dict[str, Any]:
     """GET a Guardian endpoint with throttling, backoff, and key rotation.
 
-    Tries each key in ``api_keys`` in order. If a key exhausts its retries
-    (e.g., daily-limit 429s that don't recover under backoff), rotates to
-    the next key. Raises only if all keys fail.
+    Status-code handling:
+    - **200**: return payload.
+    - **429** (rate-limit): retry with backoff; if all retries on this key
+      exhaust, rotate to the next key.
+    - **5xx** (server error): retry with backoff but do NOT rotate keys —
+      server problems aren't key-specific.
+    - **Other 4xx** (bad request, unauthorized, etc.): raise immediately.
+      The request itself is malformed; retrying or rotating won't help.
     """
     url = f"{GUARDIAN_BASE_URL}{endpoint}"
     last_error: Optional[Exception] = None
 
     for key_idx, api_key in enumerate(api_keys):
         params_with_auth = {**params, "api-key": api_key, "format": "json"}
+        got_rate_limited = False
         for attempt in range(max_retries):
             _throttle_guardian()
             try:
                 response = requests.get(url, params=params_with_auth, timeout=20)
-                if response.status_code == 200:
-                    payload: Dict[str, Any] = response.json()
-                    return payload["response"]
-                if response.status_code in (429, 500, 502, 503, 504):
-                    time.sleep(2**attempt)
-                    continue
-                response.raise_for_status()
-            except (requests.RequestException, ValueError) as e:
+            except requests.RequestException as e:
                 last_error = e
                 if attempt == max_retries - 1:
                     break
                 time.sleep(2**attempt)
-        if key_idx < len(api_keys) - 1:
+                continue
+
+            if response.status_code == 200:
+                try:
+                    payload: Dict[str, Any] = response.json()
+                    return payload["response"]
+                except (ValueError, KeyError) as e:
+                    last_error = e
+                    break
+
+            if response.status_code == 429:
+                got_rate_limited = True
+                last_error = RuntimeError(f"429 from {url}")
+                time.sleep(2**attempt)
+                continue
+
+            if response.status_code in (500, 502, 503, 504):
+                last_error = RuntimeError(
+                    f"{response.status_code} from {url}"
+                )
+                time.sleep(2**attempt)
+                continue
+
+            # Non-retriable client error (400, 401, 403, 404, ...)
+            raise RuntimeError(
+                f"Guardian GET {url} failed with {response.status_code}: "
+                f"{response.text[:200]}"
+            )
+
+        # All retries exhausted on this key. Rotate only if the failures
+        # looked like rate-limiting — otherwise the next key has the same
+        # problem we just hit.
+        if got_rate_limited and key_idx < len(api_keys) - 1:
             print(
-                f"  [guardian] key {key_idx + 1}/{len(api_keys)} exhausted; "
+                f"  [guardian] key {key_idx + 1}/{len(api_keys)} rate-limited; "
                 "rotating to next"
             )
+            continue
+        break
+
     raise RuntimeError(
-        f"Guardian GET {url} exhausted all {len(api_keys)} key(s): {last_error}"
+        f"Guardian GET {url} exhausted retries: {last_error}"
     )
 
 
@@ -211,6 +245,12 @@ def search_related(
 
 
 _SLUG_SANITIZE_RE = re.compile(r"[^a-zA-Z0-9_-]+")
+# Guardian's `q` parameter uses Lucene syntax. Non-ASCII characters and
+# punctuation that has Lucene meaning (curly quotes, em/en dashes, etc.)
+# can produce 400 Bad Request errors. We keep only ASCII letters, digits,
+# and spaces — sufficient for relevance search.
+_TOPIC_QUERY_SANITIZE_RE = re.compile(r"[^a-zA-Z0-9\s]")
+_TOPIC_QUERY_MAX_CHARS = 100
 
 
 def _article_id_from_guardian(raw: Dict[str, Any]) -> str:
@@ -242,13 +282,21 @@ def extract_short_context(
 
 
 def extract_topic_query(raw: Dict[str, Any]) -> str:
-    """Use the headline as the natural-language relevance query.
+    """Build a Guardian-`q`-safe relevance query from the article headline.
 
-    Guardian's relevance search handles full-sentence queries well, so we
-    avoid hand-rolled keyword extraction (which would lose context).
+    The raw headline is sanitized to drop characters that confuse Guardian's
+    Lucene query parser (curly quotes, em/en dashes, other punctuation) and
+    truncated to a length that fits comfortably in a GET request. We keep
+    enough words to communicate the topic for relevance scoring.
     """
     fields = raw.get("fields") or {}
-    return fields.get("headline") or raw.get("webTitle", "")
+    raw_headline: str = fields.get("headline") or raw.get("webTitle", "")
+    cleaned = _TOPIC_QUERY_SANITIZE_RE.sub(" ", raw_headline)
+    cleaned = " ".join(cleaned.split())
+    if len(cleaned) > _TOPIC_QUERY_MAX_CHARS:
+        # Cut at a word boundary so we don't end mid-word.
+        cleaned = cleaned[:_TOPIC_QUERY_MAX_CHARS].rsplit(" ", 1)[0]
+    return cleaned
 
 
 # ---------------------------------------------------------------------------
