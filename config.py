@@ -55,7 +55,11 @@ CONFIG: Dict[str, Any] = {
     "anthropic_api_key": "",
 
     # Guardian edition filter. One of "us", "uk", "aus", or None for global.
-    "guardian_production_office": "us",
+    # Note: "us" + a UK-default section name (e.g., "politics") returns
+    # essentially nothing because the US team tags its content under
+    # "us-news/*" paths, not the UK section names. Set to None to use
+    # all eight spec sections; cherry-pick US examples for the report.
+    "guardian_production_office": None,
 
     # Paths
     "drive_root": "/content/drive/MyDrive/Colab Notebooks/CS-5788-generative-models/final-project/",
