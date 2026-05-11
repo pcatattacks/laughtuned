@@ -50,9 +50,12 @@ CONFIG: Dict[str, Any] = {
     "gen_max_new_tokens": 200,
 
     # APIs (fill in via Colab secrets or local env, do NOT commit values)
-    "judge_model": "claude-sonnet-4-20250514",
+    "judge_model": "claude-sonnet-4-6",
     "guardian_api_key": "",
     "anthropic_api_key": "",
+
+    # Guardian edition filter. One of "us", "uk", "aus", or None for global.
+    "guardian_production_office": "us",
 
     # Paths
     "drive_root": "/content/drive/MyDrive/Colab Notebooks/CS-5788-generative-models/final-project/",
