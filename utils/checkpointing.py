@@ -115,10 +115,20 @@ class CheckpointManager:
         return state
 
     def load_best(self, model: PeftModel) -> None:
-        """Reload best adapter weights onto an already-initialized PeftModel."""
+        """Reload best adapter weights onto an already-initialized PeftModel.
+
+        Drops any existing ``"default"`` adapter first so PEFT versions that
+        don't auto-overwrite on ``load_adapter`` (older releases) won't
+        choke. No-op when PEFT does auto-overwrite cleanly.
+        """
         if not os.path.isdir(self._best_path):
             print("[checkpoint] No 'best' checkpoint to load; leaving model as is.")
             return
+        if "default" in getattr(model, "peft_config", {}):
+            try:
+                model.delete_adapter("default")
+            except Exception as e:
+                print(f"[checkpoint] delete_adapter('default') failed: {e}; continuing")
         model.load_adapter(self._best_path, adapter_name="default", is_trainable=True)
 
     def _write_state(self, step: int, best_val_loss: float) -> None:
