@@ -171,57 +171,6 @@ def search_section(
     return list(resp.get("results", []))
 
 
-def _select_time_diverse(
-    pool: List[Dict[str, Any]],
-    n: int,
-    from_date: str,
-    to_date: str,
-) -> List[Dict[str, Any]]:
-    """Pick ``n`` articles maximally spread across the lookback window.
-
-    Partitions ``from_date`` → ``to_date`` into ``n`` equal time slices and
-    selects the most-relevant article in each non-empty slice. ``pool`` is
-    expected to come from Guardian in relevance order (first = most
-    relevant), so within each time bucket we keep that ranking.
-    """
-    if len(pool) <= n:
-        return pool
-
-    try:
-        from_dt = datetime.fromisoformat(from_date)
-        to_dt = datetime.fromisoformat(to_date)
-    except ValueError:
-        return pool[:n]
-
-    total_seconds = (to_dt - from_dt).total_seconds()
-    if total_seconds <= 0:
-        return pool[:n]
-    slice_seconds = total_seconds / n
-
-    relevance_rank: Dict[int, int] = {id(a): idx for idx, a in enumerate(pool)}
-    buckets: List[List[Dict[str, Any]]] = [[] for _ in range(n)]
-    for art in pool:
-        pub_raw = art.get("webPublicationDate", "")
-        try:
-            pub_dt = datetime.fromisoformat(
-                pub_raw.replace("Z", "+00:00")
-            ).replace(tzinfo=None)
-        except ValueError:
-            buckets[-1].append(art)
-            continue
-        offset = (pub_dt - from_dt).total_seconds()
-        idx = int(offset / slice_seconds)
-        idx = min(max(idx, 0), n - 1)
-        buckets[idx].append(art)
-
-    selected: List[Dict[str, Any]] = []
-    for bucket in buckets:
-        if bucket:
-            best = min(bucket, key=lambda a: relevance_rank[id(a)])
-            selected.append(best)
-    return selected
-
-
 def search_related(
     api_keys: List[str],
     topic_query: str,
@@ -229,13 +178,8 @@ def search_related(
     from_date: Optional[str] = None,
     top_n: int = NUM_HISTORICAL_ARTICLES,
     production_office: Optional[str] = None,
-    search_pool_size: int = 10,
 ) -> List[Dict[str, Any]]:
-    """Return up to ``top_n`` older articles relevant to ``topic_query``.
-
-    Fetches ``search_pool_size`` candidates by relevance, then partitions
-    them across the ``from_date``→``to_date`` window so the chosen articles
-    span the lookback range rather than clustering in one time period.
+    """Return the top ``top_n`` articles by Guardian relevance score.
 
     Both ``from_date`` and ``to_date`` are inclusive ISO dates. The caller
     is responsible for choosing a ``to_date`` that excludes the current
@@ -249,7 +193,7 @@ def search_related(
     params: Dict[str, Any] = {
         "q": topic_query,
         "to-date": to_date,
-        "page-size": search_pool_size,
+        "page-size": top_n,
         "show-fields": "bodyText,headline,trailText",
         "order-by": "relevance",
     }
@@ -258,10 +202,7 @@ def search_related(
     if production_office is not None:
         params["production-office"] = production_office
     resp = _guardian_get("/search", params, api_keys)
-    pool = list(resp.get("results", []))
-    if from_date is not None and len(pool) > top_n:
-        return _select_time_diverse(pool, top_n, from_date, to_date)
-    return pool[:top_n]
+    return list(resp.get("results", []))[:top_n]
 
 
 # ---------------------------------------------------------------------------
