@@ -80,8 +80,19 @@ def build_dpo_examples(
 def build_kto_examples(
     rubric_records: List[RubricRecord],
     prompts: List[PromptRecord],
+    desirable_threshold: float,
+    undesirable_threshold: float,
 ) -> List[KTOExample]:
-    """One example per response (a and b separately), excluding dropped labels."""
+    """One example per response (a and b separately), excluding dropped labels.
+
+    Labels are derived from each response's composite score at call time
+    using the supplied thresholds — the ``kto_label_a`` / ``kto_label_b``
+    fields stored in the rubric records are ignored. This decouples
+    threshold tuning from the expensive judging step: change the thresholds
+    here, rebuild, and skip re-judging.
+    """
+    from data.judge import compute_kto_label  # late import to avoid cycle
+
     prompt_lookup = {p["prompt_id"]: p for p in prompts}
     examples: List[KTOExample] = []
     for r in rubric_records:
@@ -89,10 +100,13 @@ def build_kto_examples(
         if p is None or p["split"] == "eval":
             continue
         prompt_text = p[f"prompt_text_{r['context_length']}"]  # type: ignore[literal-required]
-        for response, label_str in (
-            (r["response_a"], r["kto_label_a"]),
-            (r["response_b"], r["kto_label_b"]),
+        for response, composite in (
+            (r["response_a"], r["composite_a"]),
+            (r["response_b"], r["composite_b"]),
         ):
+            label_str = compute_kto_label(
+                composite, desirable_threshold, undesirable_threshold
+            )
             if label_str is None:
                 continue
             examples.append(

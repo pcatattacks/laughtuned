@@ -76,12 +76,33 @@ def precompute_dpo_ref_logps(
         Indexed by the dataset's ``example_idx``.
     """
     path = _dpo_path(config, split, context_length)
-    if os.path.isfile(path):
-        print(f"[ref_log_probs] Loading cached DPO ref log-probs: {path}")
-        return torch.load(path, map_location="cpu")
-
     device = _device_of(model)
     n_examples = len(dataloader.dataset)  # type: ignore[arg-type]
+
+    if os.path.isfile(path):
+        cached = torch.load(path, map_location="cpu")
+        valid = (
+            isinstance(cached, dict)
+            and "chosen" in cached and "rejected" in cached
+            and isinstance(cached["chosen"], torch.Tensor)
+            and isinstance(cached["rejected"], torch.Tensor)
+            and len(cached["chosen"]) == n_examples
+            and len(cached["rejected"]) == n_examples
+        )
+        if valid:
+            print(f"[ref_log_probs] Loading cached DPO ref log-probs: {path}")
+            return cached
+        cached_n = (
+            len(cached["chosen"])
+            if isinstance(cached, dict) and isinstance(cached.get("chosen"), torch.Tensor)
+            else "?"
+        )
+        print(
+            f"[ref_log_probs] Stale DPO cache (cached n={cached_n}, "
+            f"expected n={n_examples}); recomputing."
+        )
+        os.remove(path)
+
     chosen_buf = torch.full((n_examples,), float("nan"))
     rejected_buf = torch.full((n_examples,), float("nan"))
 
@@ -128,12 +149,23 @@ def precompute_kto_ref_logps(
     Returns a ``(N,)`` CPU tensor indexed by ``example_idx``.
     """
     path = _kto_path(config, split, context_length)
-    if os.path.isfile(path):
-        print(f"[ref_log_probs] Loading cached KTO ref log-probs: {path}")
-        return torch.load(path, map_location="cpu")
-
     device = _device_of(model)
     n_examples = len(dataloader.dataset)  # type: ignore[arg-type]
+
+    if os.path.isfile(path):
+        cached = torch.load(path, map_location="cpu")
+        if isinstance(cached, torch.Tensor) and len(cached) == n_examples:
+            print(f"[ref_log_probs] Loading cached KTO ref log-probs: {path}")
+            return cached
+        cached_n = (
+            len(cached) if isinstance(cached, torch.Tensor) else "?"
+        )
+        print(
+            f"[ref_log_probs] Stale KTO cache (cached n={cached_n}, "
+            f"expected n={n_examples}); recomputing."
+        )
+        os.remove(path)
+
     buf = torch.full((n_examples,), float("nan"))
 
     model.eval()

@@ -57,7 +57,7 @@ def dpo_loss(
     """
     chosen_reward_B = beta * (policy_chosen_logps_B - reference_chosen_logps_B)
     rejected_reward_B = beta * (policy_rejected_logps_B - reference_rejected_logps_B)
-    loss = -F.log_sigmoid(chosen_reward_B - rejected_reward_B).mean()
+    loss = -F.logsigmoid(chosen_reward_B - rejected_reward_B).mean()
     metrics = {
         "loss": loss.item(),
         "chosen_rewards_mean": chosen_reward_B.mean().item(),

@@ -31,7 +31,11 @@ CONFIG: Dict[str, Any] = {
     "max_grad_norm": 1.0,
     "dpo_beta": 0.1,
     "kto_beta": 0.1,
-    "kto_desirable_threshold": 3.5,
+    # Calibrated against the observed composite-score distribution from a
+    # full judging pass (mean ≈ 2.64, judge runs harsh on Mistral base).
+    # 3.5/2.5 produced ~8% desirable; lowering to 3.0 yields a more
+    # balanced training set without re-judging.
+    "kto_desirable_threshold": 3.0,
     "kto_undesirable_threshold": 2.5,
 
     # Evaluation and checkpointing
