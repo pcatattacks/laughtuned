@@ -26,8 +26,8 @@ CONFIG: Dict[str, Any] = {
     "lr_scheduler": "cosine",
     "warmup_ratio": 0.1,
     "num_epochs": 3,
-    "batch_size": 4,
-    "gradient_accumulation_steps": 8,  # effective batch size 32
+    "batch_size": 16,
+    "gradient_accumulation_steps": 2,  # effective batch size 32 (matches spec exactly)
     "max_grad_norm": 1.0,
     "dpo_beta": 0.1,
     "kto_beta": 0.1,
@@ -55,10 +55,11 @@ CONFIG: Dict[str, Any] = {
     # `gen_eval_batch_size` is used as-is for single-response generation
     # during final eval (no doubling).
     # Memory tuning rules of thumb on Mistral-7B 4-bit at seq_len=1024:
-    #   T4 16 GB:  pairs=4, eval=8  (current)
-    #   A100 40 GB: pairs=8 or 16, eval=16 or 32
-    "gen_pairs_batch_size": 4,
-    "gen_eval_batch_size": 8,
+    #   T4 16 GB:        pairs=4,  eval=8
+    #   A100 40 GB:      pairs=24, eval=48 (current, ~14 GB peak margin)
+    #   A100 conservative: pairs=16, eval=32 (more headroom)
+    "gen_pairs_batch_size": 24,
+    "gen_eval_batch_size": 48,
 
     # APIs (fill in via Colab secrets or local env, do NOT commit values)
     "judge_model": "claude-sonnet-4-6",
