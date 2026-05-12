@@ -22,7 +22,11 @@ CONFIG: Dict[str, Any] = {
     "lora_target_modules": ["q_proj", "k_proj", "v_proj", "o_proj"],
 
     # Training
-    "learning_rate": 5e-5,
+    # 5e-5 caused DPO reward collapse on the 425-example dataset — the
+    # policy crashed both chosen and rejected log-probs the moment LR
+    # peaked. 1e-5 is the calmer LR that lets early stopping pick the
+    # optimum before degradation kicks in.
+    "learning_rate": 1e-5,
     "lr_scheduler": "cosine",
     "warmup_ratio": 0.1,
     # 10 epochs gives DPO ~140 opt steps and KTO ~220 (effective batch 32).
