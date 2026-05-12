@@ -407,6 +407,21 @@ def train(
             best_step=best_step,
             evals_without_improvement=evals_without_improvement,
         )
+        # Defensive: guarantee `best/` exists before load_best. This protects
+        # against the corner case where no per-step save_steps gate fired
+        # during training (very short runs) AND the final save's val_loss
+        # didn't beat best_val_loss (tied or worse). Without this guarantee,
+        # load_best raises and the eval pipeline silently runs on the wrong
+        # variant.
+        import os as _os
+        if not _os.path.isdir(checkpointer._best_path):
+            print(
+                f"[train/{experiment_name}] no best/ checkpoint after training; "
+                "copying latest/ -> best/ so eval pipeline has something to load"
+            )
+            checkpointer._copy_dir(
+                checkpointer._latest_path, checkpointer._best_path
+            )
         try:
             checkpointer.load_best(model)
         except Exception as e:

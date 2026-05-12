@@ -60,9 +60,13 @@ def kto_loss(
         - ``lambda_desirable``: weight applied to desirable rows.
         - ``lambda_undesirable``: weight applied to undesirable rows.
 
-    Raises:
-        ValueError: If the batch contains only one label class (z_ref then
-            collapses onto the present class, which is ill-conditioned).
+    Single-class batches:
+        When all labels in the batch are the same class, the missing-class
+        divisor is clamped to 1.0 (avoiding inf weights) and the missing-
+        class metric is reported as NaN. z_ref still collapses onto the
+        present class for that batch, which biases the loss; the training
+        loop should prefer larger effective batches when class balance is
+        skewed to mitigate this.
 
     Note on gradient accumulation:
         For correctness, ``z_ref`` should ideally be computed across the
@@ -77,24 +81,42 @@ def kto_loss(
     v_desirable_B = F.sigmoid(beta * (log_ratio_B - z_ref))
     v_undesirable_B = F.sigmoid(beta * (z_ref - log_ratio_B))
 
-    # calculate the weights for the desirable and undesirable classes
+    # Inverse-frequency class weights. Clamp the divisors so a microbatch
+    # containing only one class doesn't produce inf weights (val passes with
+    # eval_steps=10 and small val sets routinely hit single-class batches).
     N = len(labels_B)
-    lambda_desirable = N / (2 * labels_B.sum())
-    lambda_undesirable = N / (2 * (N - labels_B.sum()))
+    n_desirable = labels_B.sum().clamp(min=1.0)
+    n_undesirable = (N - labels_B.sum()).clamp(min=1.0)
+    lambda_desirable = N / (2 * n_desirable)
+    lambda_undesirable = N / (2 * n_undesirable)
 
-    
     v_used_B = torch.where(labels_B == 1.0, v_desirable_B, v_undesirable_B)
     weight_B = torch.where(labels_B == 1.0, lambda_desirable, lambda_undesirable)
     per_example_loss_B = weight_B * (1 - v_used_B)
 
     loss = per_example_loss_B.mean()
+
+    # Mean v restricted to each label class so the metric describes that
+    # class only. Returns NaN when the class is absent — caller treats NaN
+    # as "no signal" rather than misleading per-batch averages.
+    desirable_mask = labels_B == 1.0
+    undesirable_mask = ~desirable_mask
+    v_desirable_mean = (
+        v_desirable_B[desirable_mask].mean().item()
+        if desirable_mask.any() else float("nan")
+    )
+    v_undesirable_mean = (
+        v_undesirable_B[undesirable_mask].mean().item()
+        if undesirable_mask.any() else float("nan")
+    )
+
     metrics = {
         "loss": loss.item(),
         "z_ref": z_ref.item(),
         "log_ratio_mean": log_ratio_B.mean().item(),
-        "v_desirable_mean": v_desirable_B.mean().item(),
-        "v_undesirable_mean": v_undesirable_B.mean().item(),
+        "v_desirable_mean": v_desirable_mean,
+        "v_undesirable_mean": v_undesirable_mean,
         "lambda_desirable": lambda_desirable.item(),
-        "lambda_undesirable": lambda_undesirable.item()
+        "lambda_undesirable": lambda_undesirable.item(),
     }
     return loss, metrics

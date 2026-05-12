@@ -170,11 +170,17 @@ def _parse_rubric_response(raw: str) -> RubricResult:
 
 
 def compute_kto_label(
-    composite_score: float,
+    composite_score: Optional[float],
     desirable_threshold: float,
     undesirable_threshold: float,
 ) -> Optional[str]:
-    """Bucket a composite rubric score into desirable / undesirable / dropped."""
+    """Bucket a composite rubric score into desirable / undesirable / dropped.
+
+    Returns ``None`` for missing scores so a hand-edited or partially-saved
+    rubric record doesn't crash the dataset rebuild.
+    """
+    if composite_score is None:
+        return None
     if composite_score > desirable_threshold:
         return "desirable"
     if composite_score < undesirable_threshold:

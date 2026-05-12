@@ -63,6 +63,8 @@ def dpo_loss(
         "chosen_rewards_mean": chosen_reward_B.mean().item(),
         "rejected_rewards_mean": rejected_reward_B.mean().item(),
         "reward_margin": (chosen_reward_B - rejected_reward_B).mean().item(),
-        "accuracy": (chosen_reward_B > rejected_reward_B).count_nonzero().item() / len(chosen_reward_B),
+        # Count ties as "correct" so a fresh policy (where chosen_reward ==
+        # rejected_reward == 0) reports 50% accuracy at init instead of 0%.
+        "accuracy": (chosen_reward_B >= rejected_reward_B).count_nonzero().item() / len(chosen_reward_B),
     }
     return loss, metrics

@@ -25,7 +25,11 @@ CONFIG: Dict[str, Any] = {
     "learning_rate": 5e-5,
     "lr_scheduler": "cosine",
     "warmup_ratio": 0.1,
-    "num_epochs": 3,
+    # 10 epochs gives DPO ~140 opt steps and KTO ~220 (effective batch 32).
+    # We rely on early stopping + best-checkpoint restore to find the true
+    # optimum; the cosine schedule's longer tail isn't a problem because
+    # load_best replays the lowest-val-loss adapter at the end of training.
+    "num_epochs": 10,
     "batch_size": 16,
     "gradient_accumulation_steps": 2,  # effective batch size 32 (matches spec exactly)
     "max_grad_norm": 1.0,
@@ -38,10 +42,14 @@ CONFIG: Dict[str, Any] = {
     "kto_desirable_threshold": 3.0,
     "kto_undesirable_threshold": 2.5,
 
-    # Evaluation and checkpointing
-    "eval_steps": 50,
-    "save_steps": 100,
-    "early_stopping_patience": 3,  # in units of eval_steps
+    # Evaluation and checkpointing.
+    # eval_steps=10 gives DPO ~14 val points and KTO ~22 over 10 epochs;
+    # patience=5 => stop after 50 steps without improvement (~3.5 epochs
+    # for DPO, ~2.3 for KTO). Aggressive enough to escape early plateaus,
+    # loose enough to let real improvements show up.
+    "eval_steps": 10,
+    "save_steps": 20,
+    "early_stopping_patience": 5,  # in units of eval_steps
 
     # Data
     "num_comedy_prompts": 500,

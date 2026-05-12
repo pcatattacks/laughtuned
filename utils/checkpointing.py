@@ -120,10 +120,22 @@ class CheckpointManager:
         Drops any existing ``"default"`` adapter first so PEFT versions that
         don't auto-overwrite on ``load_adapter`` (older releases) won't
         choke. No-op when PEFT does auto-overwrite cleanly.
+
+        Raises:
+            FileNotFoundError: If no ``best/`` directory exists at this
+                experiment's path. Earlier we silently no-op'd here, which
+                meant the eval pipeline could end up generating with a
+                stale or wrong-variant adapter still attached to ``model``.
+                Failing loudly forces the caller to handle the case.
         """
         if not os.path.isdir(self._best_path):
-            print("[checkpoint] No 'best' checkpoint to load; leaving model as is.")
-            return
+            raise FileNotFoundError(
+                f"No 'best' checkpoint at {self._best_path}; cannot load. "
+                "This usually means training ran too few steps to trigger "
+                "the save_steps gate. Check that train() ran to completion "
+                "and that save_steps is small enough relative to total opt "
+                "steps."
+            )
         if "default" in getattr(model, "peft_config", {}):
             try:
                 model.delete_adapter("default")
