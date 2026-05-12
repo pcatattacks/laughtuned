@@ -84,6 +84,16 @@ def _generate_one_pass(
 ) -> List[FinalGenerationRecord]:
     """Generate one response per prompt for the given variant."""
     _prepare_tokenizer_for_generation(tokenizer)
+    # `prepare_model_for_kbit_training` (called at model load) turns gradient
+    # checkpointing ON and KV-cache OFF for training. Both must flip for
+    # `model.generate()` to work — otherwise SDPA attention sees a mask
+    # shaped for the full sequence while the query is only the new token,
+    # raising a shape-mismatch RuntimeError mid-generation.
+    try:
+        model.gradient_checkpointing_disable()
+    except Exception:
+        pass
+    model.config.use_cache = True
     device = next(model.parameters()).device
     max_new = int(config["gen_max_new_tokens"])
     max_prompt_tokens = int(config["max_seq_length"]) - max_new
