@@ -8,3 +8,33 @@ __pycache__/
 .DS_Store
 
 .env
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.brf
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+
+# Assignment submission artifacts (not part of the public project)
+/submission_demo.ipynb
+/submission_demo.pdf
+/submission_demo_files/
+/final.pdf
+/human_eval.ipynb
+/nbconvert_template.tex.j2
+/experiment_snapshot.json
+
+# Drive-backed runtime artifacts (data/checkpoints/metrics live on Google Drive)
+/data/articles/
+/data/eval/
+/data/generations/
+/data/preferences/
+/data/prompts/
+/data/splits/
+/metrics/
+/figures/
