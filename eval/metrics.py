@@ -1,6 +1,6 @@
 """Automated evaluation metrics for the trained variants.
 
-Three metrics from the project spec (Step 10), pragmatically scoped:
+Two metrics, pragmatically scoped:
 
 - **Perplexity** under the base model. Measures how much each variant's
   outputs have drifted from the base distribution. Some increase is
@@ -8,10 +8,11 @@ Three metrics from the project spec (Step 10), pragmatically scoped:
   degraded.
 - **BERTScore** of each generated response against the input article
   context. Measures whether jokes stay on-topic.
-- **Self-BLEU** (mode-collapse detector) intentionally omitted in this
-  scope: it requires generating 5 responses per prompt per variant,
-  which doubles generation cost. Skipped to fit the deadline; report
-  accordingly.
+
+Self-BLEU (mode-collapse detector) is intentionally omitted: it requires
+sampling multiple responses per prompt per variant, doubling generation
+cost. Cross-judge head-to-head comparisons already cover the
+distinguishability axis we care about most.
 
 All metrics consume the same ``FinalGenerationRecord`` stream from
 ``eval/generate_eval.py`` and write per-variant summaries to disk.
@@ -113,8 +114,8 @@ def bertscore_against_contexts(
     if not responses:
         return []
 
-    # Heavy import deferred so the module is cheap to load even if
-    # bert_score isn't installed (only Step 10 needs it).
+    # Heavy import deferred so the module is cheap to load even when
+    # bert_score isn't installed; only this function needs it.
     from bert_score import score as bertscore_fn
 
     _, _, f1 = bertscore_fn(

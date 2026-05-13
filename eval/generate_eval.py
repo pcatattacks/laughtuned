@@ -4,9 +4,10 @@ For each held-out eval prompt, sample one response from:
 - the base Mistral (no LoRA), and
 - each trained LoRA adapter (DPO short, DPO long, KTO short, KTO long).
 
-Same generation hyperparameters as Step 4 so the only thing that varies is
-the policy (or context length). Results land in ``data/eval/final_generations.jsonl``
-with one record per (prompt_id, variant) — flat, easy to pivot in Step 11.
+Uses the same generation hyperparameters as the base-model paired sampler so
+the only thing that varies between rows is the policy (and context length).
+Results land in ``data/eval/final_generations.jsonl`` with one record per
+(prompt_id, variant) — flat and easy to pivot for downstream judging.
 """
 
 from __future__ import annotations
@@ -217,9 +218,9 @@ def index_generations(
 ) -> Dict[str, Dict[tuple, str]]:
     """Pivot records to ``{prompt_id: {(variant, context_length): response}}``.
 
-    Used by Step 11's cross-judge to look up all variants' responses
-    side-by-side per prompt. Tuple keys disambiguate ``("base", "short")``
-    from ``("base", "long")`` cleanly.
+    Used by the cross-judge to look up all variants' responses side-by-side
+    per prompt. Tuple keys disambiguate ``("base", "short")`` from
+    ``("base", "long")`` cleanly.
     """
     out: Dict[str, Dict[tuple, str]] = {}
     for r in records:

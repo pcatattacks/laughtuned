@@ -281,7 +281,8 @@ def judge_all_pairs(
         config: Project config. Reads ``anthropic_api_key``, ``judge_model``,
             ``kto_desirable_threshold``, ``kto_undesirable_threshold``,
             ``drive_root``.
-        generations: All (prompt, context_length) pairs from Step 4.
+        generations: All (prompt, context_length) pairs from the base-model
+            paired sampler.
         contexts_by_prompt: Lookup ``{prompt_id: {"short": str, "long": str}}``
             so we can pass the matching context to Claude per pair. Build it
             from the PromptRecord list with ``_build_contexts_map``.

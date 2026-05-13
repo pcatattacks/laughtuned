@@ -1,14 +1,14 @@
 """Tokenized preference datasets for DPO and KTO training.
 
-Turns the rubric judging output (Step 5) into:
+Turns the rubric judging output into:
 - **DPO examples**: ``(prompt, chosen_response, rejected_response)``,
   driven by the rubric's WINNER.
 - **KTO examples**: ``(prompt, response, label ∈ {1.0, 0.0})``, driven
   by the per-response composite score thresholds in ``CONFIG``.
 
-Each example carries the prompt's train/val/eval split inherited from
-Step 3. PyTorch ``Dataset`` classes pre-tokenize on construction so the
-training loop just indexes tensors at every step.
+Each example carries the prompt's train/val/eval split assigned during
+prompt construction. PyTorch ``Dataset`` classes pre-tokenize on
+construction so the training loop just indexes tensors at every step.
 """
 
 from __future__ import annotations
