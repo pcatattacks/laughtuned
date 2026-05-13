@@ -1,0 +1,11 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+\enlargethispage{4\baselineskip}
+Under identical hyperparameters, short-context fine-tuning improves both DPO and KTO over the base model (62\% cross-judge win rate) while long-context fine-tuning \emph{degrades} both (47\%); the prompt-context length matters as much as the algorithm choice.  The two algorithms also interact with context length: DPO wins short head-to-head (59--41), KTO wins long (60--40).  Most striking, KTO's validation loss is misleading: both KTO runs reach lower val loss than DPO, yet the cross-judge ranks them no better; their mean policy-vs-reference log-ratio collapses to ${\sim}{-400}$ (short) and ${\sim}{-600}$ (long) at the best-val checkpoint while KTO's bounded loss never registers the drift.  \textbf{Take-away}: with a bounded preference-optimization surrogate like KTO, validation loss alone is not a safe stopping criterion; the policy-vs-reference log-ratio is cheap to monitor and is the signal that actually catches catastrophic drift.
+
+\paragraph{Limitations.}
+(i) $\sim$5--10\% of generations from every variant emit literal XML tags from the prompt template; Mistral-Instruct was tuned on \texttt{[INST]} delimiters and our template is slightly out-of-distribution, so this affects all variants approximately equally.
+(ii) 18.7\% of training articles and 20\% of eval prompts had no usable backstory (Guardian search in-window returned nothing), partially contaminating the long-context arm.
+(iii) $\sim$47\% of eval prompts touch tragic topics that simply don't make good comedy; not filtered.
+(iv) the human eval was conducted by the author alone, so there is no external or majority agreement of the ranking.

@@ -1,0 +1,53 @@
+%% This file contains a number of tweaks that are typically applied to the main document.
+%% They are not enabled by default, but can be enabled by uncommenting the relevant lines.
+
+%%
+%% Inline annotations; for predefined colors, refer to "dvipsnames" in the xcolor package:
+%% https://tinyurl.com/overleaf-colors
+%%
+\newcommand{\red}[1]{{\color{red}#1}}
+\newcommand{\todo}[1]{{\color{red}#1}}
+\newcommand{\TODO}[1]{\textbf{\color{red}[TODO: #1]}}
+%%
+%% disable for camera ready / submission by uncommenting these lines  
+%%
+% \renewcommand{\TODO}[1]{}
+% \renewcommand{\todo}[1]{#1}
+
+\usepackage{microtype}
+\usepackage{xcolor}
+
+\renewcommand{\paragraph}[1]{\vspace{.4em}\noindent\textbf{#1}}
+
+\setlength{\abovecaptionskip}{.4em}
+\setlength{\belowcaptionskip}{.2em}
+
+\setcounter{topnumber}{5}
+\setcounter{bottomnumber}{3}
+\setcounter{dbltopnumber}{5}
+\setcounter{totalnumber}{8}
+\renewcommand{\topfraction}{0.98}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\dbltopfraction}{0.98}
+\renewcommand{\textfraction}{0.02}
+\renewcommand{\floatpagefraction}{0.6}
+
+
+%%
+%% Allows "the use of \paper to refer to the project name"
+%% with automatic management of space at the end of the word
+%%
+% \usepackage{xspace}
+% \newcommand{\paper}{ProjectName\xspace}
+
+%%
+%% Commonly used math definitions
+%%
+% \DeclareMathOperator*{\argmin}{arg\,min}
+% \DeclareMathOperator*{\argmax}{arg\,max}
+
+%%
+%% Tigthen underline
+%%
+% \usepackage{soul}
+% \setuldepth{foobar}

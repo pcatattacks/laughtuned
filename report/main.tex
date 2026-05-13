@@ -1,0 +1,51 @@
+% CVPR 2026 Paper Template; see https://github.com/cvpr-org/author-kit
+
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+%%%%%%%%% PAPER TYPE  - PLEASE UPDATE FOR FINAL VERSION
+% \usepackage{cvpr}              % To produce the CAMERA-READY version
+% \usepackage[review]{cvpr}      % To produce the REVIEW version
+\usepackage[pagenumbers]{cvpr} % To force page numbers, e.g. for an arXiv version
+
+% Import additional packages in the preamble file, before hyperref
+\input{preamble}
+
+% It is strongly recommended to use hyperref, especially for the review version.
+% hyperref with option pagebackref eases the reviewers' job.
+% Please disable hyperref *only* if you encounter grave issues, 
+% e.g. with the file validation for the camera-ready version.
+%
+% If you comment hyperref and then uncomment it, you should delete *.aux before re-running LaTeX.
+% (Or just hit 'q' on the first LaTeX run, let it finish, and you should be clear).
+\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
+\usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
+
+%%%%%%%%% PAPER ID
+\def\paperID{n/a}
+\def\confName{CS~5788}
+\def\confYear{2026}
+
+%%%%%%%%% TITLE
+\title{LaughTuned: Comparing DPO and KTO for Comedy Writing under Context Length Variation}
+
+%%%%%%%%% AUTHORS
+\author{Pranav Dhingra\\
+Cornell Tech, Cornell University\\
+{\tt\small pd453@cornell.edu}
+}
+
+\begin{document}
+\maketitle
+\input{sec/0_abstract}
+\input{sec/1_intro}
+\input{sec/2_method}
+\input{sec/3_experiments}
+\input{sec/4_conclusion}
+{
+    \small
+    \bibliographystyle{ieeenat_fullname}
+    \bibliography{main}
+}
+\input{sec/5_appendix}
+
+\end{document}
